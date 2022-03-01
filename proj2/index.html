@@ -1,7 +1,211 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <style>
+    body {
+      padding: 100px;
+      width: 1000px;
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 184 Mesh Editor</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+  <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2020</h1>
+  <h1 align="middle">Project 2: Mesh Editor</h1>
+  <h2 align="middle">Lucy Wan and Maleny Ruiz, CS184</h2>
+
+  <br><br>
+
+  <div>
+
+    <h2 align="middle">Overview</h2>
+    <p>
+      In this project we ...
+    </p>
+
+    <h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+
+    <h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
+    <p>
+      Casteljau's algorithm takes a line with at least three points and creates new points using linear interpolation
+      (lerps) on both edges and does this recursively until we're left with one point in the middle. This final point
+      falls on the bezier curve. We implemented this by first creating a temporary 2D vector and a 2D vector to return.
+      We iterated through the points and added the x and y coordinates of the vector we wanted to return using the lerp
+      function to get these new values. We then returned the updated vector.
+
+    </p>
+
+    <!-- <p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a
+      column in that row. You might find this useful for framing and showing your result images in an organized fashion.
+    </p> -->
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/pic1.png" align="middle" width="500px" />
+            <figcaption align="middle">First iteration of lerps.</figcaption>
+          </td>
+          <td>
+            <img src="images/pic2.png" align="middle" width="500px" />
+            <figcaption align="middle">Second iteration of lerps.</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/pic3.png" align="middle" width="500px" />
+            <figcaption align="middle">Third iteration of lerps.</figcaption>
+          </td>
+          <td>
+            <img src="images/pic4.png" align="middle" width="500px" />
+            <figcaption align="middle">Fourth iteration of lerps.</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/pic5.png" align="middle" width="500px" />
+            <figcaption align="middle">Fifth iteration of lerps. This final iteration contails the point on the bezier curve.</figcaption>
+          </td>
+          <td>
+            <img src="images/pic6.png" align="middle" width="500px" />
+            <figcaption align="middle">Bezier curve with moved control points and a new t value.</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+    <h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
+    <p>
+      Casteljau's algorithm extends to Bezier surfaces because we extend it to a 3D space by adding z variable and use a
+      n x n grid of control points. We implmeneted this by iterating through the control points and adding the result
+      from calling evaluate1D which would linear interpolate through the points until we are left with one point with
+      u's value. With one point from each step in the vector, we linear interpolate again with this new vector and v's
+      value and return the result.
+    </p>
+    <br>
+    <div align="middle">
+    <img src="images/2teapot.png" align="middle" width="500px" />
+      <figcaption align="middle">Bezier surface</figcaption>
+    </div>
+    
+    <h2 align="middle">Section II: Sampling</h2>
+
+    <h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+    <p>
+      We implemented this by iterating though all of the halfedges and adding the cross product of the current position
+      - original position and the next position - original position to a vector. This grabbed the constant values of the
+      vertex and then their positions based on the constant vertex. After iterating through all of the halfedges, we
+      return the sum vector unit which is the normalized value of all of the sums.
+    </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/rough3.png" align="middle" width="500px" />
+            <figcaption align="middle">Teapot before smoothing</figcaption>
+          </td>
+          <td>
+            <img src="images/smooth3.png" align="middle" width="500px" />
+            <figcaption align="middle">Teapot after smoothing</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>    
+
+    <h3 align="middle">Part 4: Half-edge flip</h3>
+    <p>
+      We implemented edge flips by first having a check to see if the edge was a boundary, which meant that it couldn't
+      be flipped and we returned an empty EdgeIter. We then grabbed all of the edges, halfedges, vertices, and faces to
+      be able to know what is supposed to be flipped. Using a picture of a triangle with everything named, we then
+      reassigned everything to ensure that every halfedge had the correct components. We debugged by checking to see if
+      the right part was assigned to the right spot. We saw a bug that we had in part 6 where we assigned the outside
+      halfedges the wrong faces and it created a hole in the mesh later on.
+    </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/beforeflips.png" align="middle" width="500px" />
+            <figcaption align="middle">Teapot before flips</figcaption>
+          </td>
+          <td>
+            <img src="images/flips.png" align="middle" width="500px" />
+            <figcaption align="middle">Teapot after flips</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>       
+
+
+    <h3 align="middle">Part 5: Half-edge split</h3>
+    <p>
+      We implemented edge splits by first having a check to see if the edge was a boundary, which meant that it couldn’t
+      be flipped and we returned an empty EdgeIter. We then grabbed all of the halfedges, vertexes, edges and faces to
+      be able to reassign them later. We then created new halfedges, faces, edges, and a vertex to account for the
+      split. Using all this information that we have, we used a diagram to assign the right parts after the split and
+      made sure to give the newly created components the right assignments that each needed. We also set up a
+      newPosition to use in part 6 and isNew on the newly created components. Our split edge worked alone but when we
+      were debugging we saw that faces disappeared when we flipped and split. We had to go through our code to ensure
+      everything was assigned correctly. We then figured out that our flip edge was assigning the wring faces which
+      crearted the holes in the mesh.
+    </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/beforeflips.png" align="middle" width="500px" />
+            <figcaption align="middle">Teapot before splits</figcaption>
+          </td>
+          <td>
+            <img src="images/splits.png" align="middle" width="500px" />
+            <figcaption align="middle">Teapot after splits</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div> 
+    
+    <div align="middle">
+      <img src="images/flips_n_splits.png" align="middle" width="500px" />
+      <figcaption align="middle">Teapot with splits and flips</figcaption>
+      </div>
+
+
+    <h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+    <p>
+
+    </p>
+
+
+
+    <h2 align="middle">Section III: Optional Extra Credit</h2>
+    <p>If you are not participating in the optional mesh competition, don't worry about this section!</p>
+
+    <h3 align="middle">Part 7: Design your own mesh!</h3>
+
+</body>
+
 </html>
