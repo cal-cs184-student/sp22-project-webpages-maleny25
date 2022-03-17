@@ -1,7 +1,535 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+    <style>
+        div.padded {
+            padding-top: 0px;
+            padding-right: 100px;
+            padding-bottom: 0.25in;
+            padding-left: 100px;
+        }
+    </style>
+    <title>Lucy Wan and Maleny Ruiz | CS 184</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+
+<body>
+    <br />
+    <h1 align="middle">Assignment 3: PathTracer</h1>
+    <h2 align="middle">Lucy Wan and Maleny Ruiz</h2>
+
+    <div class="padded">
+        <h2>Overview</h2>
+        <p>For project 3-1, we implemented ray and scene generation, bounding volume hierarchies, direct illumination,
+            global illumination, and adaptive sampling to create images of realistic looking objects affected by light
+            sources. We really enjoyed the process of being able to incorporate concepts from class such as russian
+            roulette into practice. Overall it was a great experience being able to see our images come to life.</p>
+
+
+        <h2>Part 1: Ray Generation and Intersection</h2>
+        <p>For part 1, we implemented the ray generation and primitive intersection parts of the rendering pipeline. Ray
+            generation generates Ray objects while primitive intersection uses Rays to test whether a Ray intersects
+            with a primitive object if so, tells us the nearest time of intersection.
+        </p>
+        <p>For part 1.1, we implemented <i>Camera::generate_ray(...)</i>. The purpose of this function is to turn an
+            image coordinate into a Ray in world space. To achieve this, we start by using proportions to transform the
+            image space coordinate to camera space. We then multiply this camera space coordinate by the given camera to
+            the world space vector in order to get our world space direction. From here, we normalize the direction and
+            then construct a Ray using this direction and the given camera position as the starting point for our Ray.
+            We then set our <i>max_t</i> value to <i>nClip</i> and our <i>min_t</i> value to <i>fClip</i> and return our
+            Ray. This part took us a long time to figure out since initially, we initially were not normalizing
+            correctly. We solved it by realizing that the <i>norm</i> function doesn't return the normalized vector but
+            the Euclidean length.
+        </p>
+        <p>For part 1.2 we implemented <i>PathTracer::raytrace_pixel(...)</i>, which uses Monte Carlo estimation in
+            order to estimate the value of each pixel in our scene. It works using a loop which randomly samples a pixel
+            from image space, generating a ray from that pixel, estimating the radiance of that ray, and then returning
+            the average of the radiance values. Initially our function didn't work due to floating point errors which we
+            found after our print statements revealed certain values to evaluate to 0 when they weren't supposed to.
+        </p>
+        <p>For part 1.3, we implemented triangle intersection by first using the Moller Trumbore algorithm, which gave
+            us a vector containing <i>t</i>, <i>b<sub>1</sub></i>, and <i>b<sub>2</sub></i> by using matrix math on the
+            vertex coordinates of the triangle and the ray origin and direction. Using these values we checked them to
+            see if the Ray intersected the triangle by checking if <i>t</i> fell between the Ray's <i>max_t</i> and
+            <i>min_t</i> values (the Ray's constraints), and if <i>b<sub>1</sub></i>, <i>b<sub>2</sub></i>, and
+            <i>b<sub>3</sub> (which evaluated to </i><i>1 - b<sub>1</sub> - b<sub>2</sub></i>) were all between 0 and 1
+            (to ensure a valid intersection). If these conditions were satisfied, it meant that the Ray interested the
+            Triangle, so we updated the Ray's <i>max_t</i> to the <i>t</i> returned from the Moller Trumbore algorithm
+            (to ensure the ray doesn't go through the object) and updated <i>isect</i>'s (the Intersection object's)
+            <i>t</i> value with the correct time of intersection, <i>n</i> value with the interpolation of the
+            triangle's vertex normals (<i>n1</i>, <i>n2</i>, and <i>n3</i>) with <i>b<sub>1</sub></i>,
+            <i>b<sub>2</sub></i>, and <i>b<sub>3</sub></i>, it's <i>primitive</i> value to the Triangle object, and it's
+            <i>bdsf</i> to the Triangle's <i>bdsf</i>. When working on this part, we encountered a bug where we had
+            a strange image that wasn't the correct rendering for <i>CBempty</i>. We tried debugging on our own but
+            ended up getting help from a TA. We learned that we didn't implement the Moller Trumbore algorithm
+            correctly and were multiplying instead of getting the dot product. We also didn't set the Ray's
+            <i>max_t</i> which wasn't updating the Ray and resulted in the wrong rendering of the image.
+        </p>
+        <p>For part 1.4, we implemented sphere intersection. We pulled the <i>origin</i> and the <i>radius</i> of the
+            Sphere as well as the origin <i>o</i> and direction <i>d</i> of the Ray. Using this information we found
+            <i>a = dot(d, d)</i>, <i>b = dot(2 * (o - origin), d)</i>, and <i>c = dot((o - origin), (o - origin)) -
+                radius^2</i> (essentially using the formula of a circle to sphere to check for ray intersection). We
+            were able to use the quadratic formula to find the <i>new_t</i> value and then check if it was inside of the
+            Ray's <i>max_t</i> and <i>min_t</i>. If it was inside these values, we updated the Ray's <i>max_t</i> and
+            the <i>Intersection</i>'s <i>t</i> with the <i>new_t</i>, <i>primitive</i> with the sphere given to us,
+            <i>bsdf</i> with the sphere's <i>bsdf</i>, and <i>n</i> to the <i>normal(o + d * new_t)</i>.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/CBempty-1.png" width="480px" />
+                        <figcaption align="middle">CBempty</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/CBspheres-1.png" width="480px" />
+                        <figcaption align="middle">CBspheres</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/cow-1.png" width="480px" />
+                        <figcaption align="middle">Cow</figcaption>
+                    </td>
+
+
+                    <td align="middle">
+                        <img src="images/teapot-1.png" width="480px" />
+                        <figcaption align="middle">Teapot</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <!-- <p>Here is an example of how to include a simple formula:</p>
+        <p align="middle">
+        <pre align="middle">a^2 + b^2 = c^2</pre>
+        </p>
+        <p>or, alternatively, you can include an SVG image of a LaTex formula.</p>
+        <p>This time it's your job to copy-paste in the rest of the sections :)</p> -->
+
+        <h2>Part 2: Bounding Value Hierarchy</h2>
+        <p>In part 2.1, we implemented <i>BVHAccel:construct_bvh(...)</i> by first creating a <i>BBox</i> called
+            <i>bbox</i> to populate. We then iterated through all primitives and expanded <i>bbox</i> to include the
+            primitive's bounding box. Afterwards, we created a <i>BVHNode</i> called <i>node</i> using <i>bbox</i>. We
+            checked our base case, which is if the amount of primitives inputted was less than or equal to the
+            <i>max_leaf_size</i>, and if it was, we updated <i>node</i>'s start and end to be the same as the ones
+            inputted and returned <i>node</i>. Otherwise, if our base case isn't satisfied, we sort our primitives using
+            the value of the longest axis (determined by the largest value in the <i>extent</i> instance of <i>bbox</i>)
+            of their centroids. We use the median of these sorted primitives as our splitting point. Then we called
+            <i>construct_bvh</i> for the left and right leaves of <i>node</i> (with half the sorted primitives passed to
+            the left and the other passed to the right) to recurse through and create a tree structure.
+        </p>
+        <p>In part 2.2, we implement <i>BBox::intersect(...)</i> which returns whether a Ray intersects a BBox within
+            the time ranges of <i>t0</i> and <i>t1</i>. In order to do this we implement ray-plane intersection,
+            basically seeing how the ray intersects with each axis of a plane and then combining the results to see if
+            the times of each axis intersection match a valid plane intersection. In other words, we check that the
+            latest time a ray enters an axis is less than the earliest time a ray enters an intersection to ensure a
+            valid intersection. If a valid intersection occurs, we update t0 and t1 to the new intersection times. We
+            had a lot of issues with this part due to our initial lack of conceptual understanding on how to use the
+            values of the axis intersections. We solved this issue by consulting TAs in office hours and rewriting our
+            solution several times.
+        </p>
+        <p>In part 2.3, we implement <i>BVHAccel::has_intersection(...)</i> and <i>BVHAccel::intersect(...)</i> which
+            detect an intersection between a ray and a BVH object. In <i>intersect</i> we first check to see if the ray
+            intersects the given BBox. If not we immediately return false. If so, we update the ray's <i>min_t</i> and
+            <i>max_t</i> with the outputs of <i>BBox::intersect(...)</i>. We then check our base case (whether our given
+            BVH node is a leaf). If it is, we check for an intersection between the ray and each primitive in the node
+            while updating our given Intersection object if an intersection occurs. If no intersection occurs, we return
+            false, otherwise we return true. If our base case is not satisfied, we call <i>BVHAccel::intersect(...)</i>
+            on the left and right values of the node and return if either outputs true. Due to the nature of our
+            functions, passing the original Intersection object into both these recursive calls will result in the
+            correct Intersection object outputted. Initially, I made a simple indexing error when I was trying to split
+            the primitives. This resulted in me leaving out a primitive with each function call. I resolved it by seeing
+            that there were black faces in the cow in the GUI and checking my partitioning.
+        </p>
+        <p>Rendering without BVH acceleration takes longer compared to rendering with BVH acceleration. Rendering images
+            with BVH acceleration takes images like the cow 0.0402 seconds and the teapot takes 0.0930 seconds which is
+            less than one second. This is a significant decrease in time compared to rendering without BVH acceleration
+            which takes the cow 18.2732 seconds and the teapot 9.7807 seconds. This difference in rendering time is
+            obvious in images like the banana that takes 37.5120 seconds without BVH acceleration and takes 0.2790
+            seconds with it. Before implementing BVH acceleration, the entire scene was traversed even if there were no
+            intersections, however using BVH acceleration only uses the nodes that are guaranteed to interest and
+            discards the nodes that don't intersect. This significantly decreases rendering time because we only look at
+            the nodes that we want and need instead of looking at everything. BVH significantly improves results because
+            it eliminates the need to iterate through every object and efficiently identifies the range of objects which
+            could have been intersected.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/CBlucy-2.png" width="480px" />
+                        <figcaption align="middle">CBlucy</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/maxplanck-2.png" width="480px" />
+                        <figcaption align="middle">MaxPlanck</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/wall-e-2.png" width="480px" />
+                        <figcaption align="middle">Wall-E</figcaption>
+                    </td>
+
+
+                    <td align="middle">
+                        <img src="images/blob-2.png" width="480px" />
+                        <figcaption align="middle">Blob</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>Part 3: Direct Illumination</h2>
+        <p>For 3.1, we implemented <i>DiffuseBSDF::f</i> where we use the concept of irradiance falloff to return the
+            reflectance given <i>wi</i> and <i>wo</i> within the hemisphere.
+        </p>
+        <p>For 3.2, we implemented <i>zero_bounce_radiance</i> which returns the emission of the object intersected by
+            the given ray. We also had to update <i>est_radiance_global_illumination</i> to return zero bounce instead
+            of normal shading. In this part, we ran into an issue where only a black image would render since we had a
+            floating point error in <i>raytrace_pixel</i> from part1. We fixed it by converting the correct value to a
+            float.
+        </p>
+        <p>For part 3.2, we implemented <i>estimate_direct_lighting_hemisphere</i> (direct lighting with uniform
+            hemisphere sampling) by using a Monte Carlo estimator with <i>num_samples</i> to find the radiance at an
+            intersection. For each sample, we get <i>wj</i>, a random direction within the hemisphere, by using the
+            given <i>hemisphereSampler</i>. We get <i>f_val</i> by calling <i>f</i> of the bsdf on <i>w_out</i> and
+            <i>wj</i> to get the reflectance of the intersected object. We set <i>pdf</i> to <i>1/(2 * pi)</i> due to it
+            being in a hemisphere. We then create a Ray <i>r_j</i> using <i>w_j</i> converted to world space (we convert
+            <i>w_j</i> to world space by multiplying it with the given object to world matrix)(we need to convert this
+            direction to world space since Rays operate in world space while bsdf operate in object space) and an origin
+            of <i>hit_p</i>. We set <i>r_j</i>'s <i>min_t</i> to be <i>EPS_F</i> to avoid the ray returning an
+            intersection at the hit point. We then checked if <i>r_j</i> intersects an object within our BVH and we add
+            <i>(f_val * li_val * cos_val) / p_val</i> to our summation vector <i>L_out</i>. <i>li_val</i> is the
+            emission of the original intersection, <i>cos_val</i> was the dot product of the normal with <i>wj</i>, and
+            <i>p_val</i> is <i>pdf</i> from <i>sample_f</i>. After iterating through all of the samples, we averaged the
+            sum vector <i>L_out</i> by the number of samples and returned the resulting vector. Initially, our rendering
+            didn't work since we mistook the <i>cos_val</i> to be the dot product of the normal with <i>li_val</i>. It
+            wasn't until we consulted a fellow student who corrected our conceptual misunderstanding that we
+            found the error.
+        </p>
+        <p>For part 3.4, we implemented <i>estimate_direct_lighting_importance</i> (direct lighting by importance
+            sampling) by using a Monte Carlo estimator which iterates through the lights in the scene to find the
+            radiance at an intersection. We also iterate through each light <i>ns_area_light</i> times in order to be
+            able to take in multiple samples at each light. In each iteration, we get <i>li_val</i> by calling
+            <i>sample_L</i> on the current light and <i>hit_p</i>. By calling this function we also get <i>wi</i>, the
+            world-space direction between <i>hit_p</i> and the light source, the distance from <i>hit_p</i> to the light
+            source, and a <i>pdf</i>. We then create Ray <i> r_wi</i> with an origin of <i>hit_p</i> and a direction of
+            <i>wi</i>. We set <i>r_wi</i>'s <i>min_t</i> to be <i>EPS_F</i> (for the same reasons as 3.3) and its
+            <i>max_t</i> to be <i>dist_to_light - EPS_F</i> (in avoid the light source being counted as an
+            intersection). We then checked if <i>r_wi</i> doesn't intersect with anything in our BVH (this means that
+            there's nothing blocking the light source from hit_p) and if so we update the summation vector for the Monte
+            Carlo estimate. We add <i>(f_val * li_val * cos_val) / p_val</i> to the sum vector <i>L_out</i> where
+            <i>cos_val</i> was the dot product of <i>wi</i> in object space and the normal, and <i>p_val</i> is the
+            <i>pdf</i> that got assigned when we called <i>sample_L</i>. After iterating through all of the samples for
+            each light, we averaged the sum vector <i>L_out</i> by the number of samples of the area light and returned
+            the outputted vector. Initially we ran into an error where the back wall was black when trying render the
+            bunny. However, we reread my code and realized we forgot to convert <i>wi</i> to object space when finding
+            <i>cos_val</i> and were able to render the correct image.
+        </p>
+        <p>For both parts 3.3 and 3.4 we had to update <i>est_radiance_global_illumination</i> to return
+            <i>zero_bounce_radiance</i> added to <i>one_bounce_radiance</i> in order for <i>raytrace_pixel</i> to output
+            the correct radiance. We also use <i>one_bounce_radiance</i> as a wrapper function for both parts and update
+            it depending on whether we want to use <i>estimate_direct_lighting_importance</i> or
+            <i>estimate_direct_lighting_hemisphere</i> for the function.
+        </p>
+        <p>Hemisphere sampling contains a lot more noise than importance sampling. This is shown through the bunny that
+            is smooth when we use importance sampling compared to the bunny with hemisphere sampling. Hemisphere
+            sampling doesn't take into account all of the light that importance sampling does, which is why there's more
+            noise in the hemisphere sampling because it doesn't have enough information.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/CBbunny_H_64_32.png" width="480px" />
+                        <figcaption align="middle">CBbunny with Hemisphere Sampling</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/bunny_64_32.png" width="480px" />
+                        <figcaption align="middle">CBbunny with Importance Sampling</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/dragon_H_64_32.png" width="480px" />
+                        <figcaption align="middle">Dragon with Hemisphere Sampling</figcaption>
+                    </td>
+
+
+                    <td align="middle">
+                        <img src="images/dragon_64_32.png" width="480px" />
+                        <figcaption align="middle">Dragon with Importance Sampling</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <p>Using importance sampling with a 1 sample per pixel rate leads to noise when we don't use enough light rays.
+            Using a 1 sample per pixel rate doesn't get enough information to decrease the noise when we render.
+            However, whenever we add more light rays the noise begins to decrease because there is more light hitting
+            each pixel. Although the images are sharp, the more light rays do help with the noise.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny_1_1.png" width="480px" />
+                        <figcaption align="middle">Bunny with 1 light ray</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/bunny_1_4.png" width="480px" />
+                        <figcaption align="middle">Bunny with 4 light rays</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny_1_16.png" width="480px" />
+                        <figcaption align="middle">Bunny with 16 light rays</figcaption>
+                    </td>
+
+
+                    <td align="middle">
+                        <img src="images/bunny_1_64.png" width="480px" />
+                        <figcaption align="middle">Bunny with 64 light rays</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>Part 4: Global Illumination</h2>
+        <p>For part 4.1, we implemented <i>DiffuseBSDF::sample_f</i> where we set <i>pdf</i> to <i>1/(2*pi)</i> and
+            <i>wi</i> to a randomly generated direction within our hemisphere and return <i>f(wi->wo)</i>.
+        </p>
+        <p>For part 4.2, we implemented indirect lighting with <i>at_least_one_bounce_radiance</i> by incorporating
+            multiple bounces. We start off by returning an empty vector if our ray has a depth of 0. Otherwise, we keep
+            a variable <i>L</i> representing our resulting radiance vector. We add the result of
+            <i>one_bonce_radiance</i> to <i>L</i> and call <i>sample_f</i> on the bsdf of the intersected object in
+            order to generate the reflectance (used for <i>f_val</i>), the pdf (used for <i>p_val</i>), and the randomly
+            sampled direction within the hemisphere (used for <i>w_i</i>). We then create a Ray with the hit point as
+            the origin and <i>w_i</i> converted to world space as the direction. We set <i>min_t</i> of this ray to
+            <i>EPS_F</i> (for the same reasons as 3.3) and depth to the original ray subtracted by on (to be able to
+            keep track of how many recursive calls were made and terminate appropriately). We then use this newly
+            created ray to check if it intersects with any object in our BVH. If so, if it's the first time that
+            <i>at_least_one_bounce</i> is being called and the <i>max_ray_depth</i> is greater than one (to satisfy the
+            spec's requirement of having at least one indirect bounce) or if <i>coin_flip</i> of the continuation
+            probability (we use 0.6) returns true, we add a recursive call to <i>at_least_one_bounce_radiance</i> on the
+            new Ray and the new Intersection object, <i>f_val</i>, the dot product of the normal with <i>w_i</i>, all
+            divided by <i>p_val</i> to <i>L</i>. The purpose of using <i>coin_flip</i> is to use Russian Roulette for an
+            unbiased termination method.
+        </p>
+        <p>In part 4, we ran into many bugs. The main bug was that we were using importance sampling for
+            <i>one_bounce_radiance</i> which caused shadows in the sphere we tried rendering to be much darker than they
+            were supposed to be. We fixed this bug after several hours of looking through our
+            <i>at_least_one_bounce_radiance</i> function, realizing that nothing looked wrong, and then checking other
+            functions involved.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_4.png" width="480px" />
+                        <figcaption align="middle">Spheres</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/empty_4.png" width="480px" />
+                        <figcaption align="middle">Empty Room</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny_4.png" width="480px" />
+                        <figcaption align="middle">Bunny</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <p>Direct illumination removes traces of noise unlike indirect lighting that does contain noise. There's nothing
+            that removes the lighting in the direct illumination and it receives all the lighting. Shadows are harsher
+            in the direct illumination unlike the indirect illumination that smooths out the shadows.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny_4Direct.png" width="480px" />
+                        <figcaption align="middle">Direct Illumination</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/bunny_4Indirect.png" width="480px" />
+                        <figcaption align="middle">Indirect Illumination</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <p>Changing max_ray_depth while using 1024 samples per pixel changes the image. Using a 0 max_ray_depth allows
+            no light to come in except the light source which leads to a black room. Allowing 1 max_ray_depth we get
+            direct illumination with harsh shadows and no noise. Increasing max_ray_depth after 1 starts to include
+            noise and the image starts to get a little lighter and turns into indirect illumination.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny0.png" width="480px" />
+                        <figcaption align="middle">Bunny with 0 <i>max_ray_depth</i></figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/bunny1.png" width="480px" />
+                        <figcaption align="middle">Bunny with 1 <i>max_ray_depth</i></figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny2.png" width="480px" />
+                        <figcaption align="middle">Bunny with 2 <i>max_ray_depth</i></figcaption>
+                    </td>
+
+
+                    <td align="middle">
+                        <img src="images/bunny3.png" width="480px" />
+                        <figcaption align="middle">Bunny with 3 <i>max_ray_depth</i></figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny100.png" width="480px" />
+                        <figcaption align="middle">Bunny with 100 <i>max_ray_depth</i></figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <p>Using 4 light rays with varying pixel rates results in a different image. With only 1 sample per pixel, the
+            image looks graining and the colors are barely there. This is not enough samples to get the actual image.
+            Slowly increasing the sample pixel rate increases the color and visibility of the image. The noise also
+            decreases because we have more samples to get more information from. Using a higher sampling rate with only
+            4 light rays allows for a better image but not a perfect one.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_4_1.png" width="480px" />
+                        <figcaption align="middle">Spheres with 1 sample per pixel</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/sphere_4_2.png" width="480px" />
+                        <figcaption align="middle">Spheres with 2 samples per pixel</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_4_4.png" width="480px" />
+                        <figcaption align="middle">Spheres with 4 samples per pixel</figcaption>
+                    </td>
+
+
+                    <td align="middle">
+                        <img src="images/sphere_4_8.png" width="480px" />
+                        <figcaption align="middle">Spheres with 8 samples per pixel</figcaption>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_4_16.png" width="480px" />
+                        <figcaption align="middle">Spheres with 16 samples per pixel</figcaption>
+                    </td>
+                    <td align="middle">
+                        <img src="images/sphere_4_64.png" width="480px" />
+                        <figcaption align="middle">Spheres with 64 samples per pixel</figcaption>
+                    </td>
+                </tr>
+                <tr>
+
+                    <td align="middle">
+                        <img src="images/sphere_4_1024.png" width="480px" />
+                        <figcaption align="middle">Spheres with 1024 samples per pixel</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>Part 5: Adaptive Sampling</h2>
+        <p>For part 5, we implemented adaptive sampling by updating our <i>raytrace_pixel</i> function to stop when
+            sampling reaches a specified confidence interval. First, we added <i>s1</i> (a double which keeps track of
+            the summation of the illumination of each radiance sampled) and <i>s2</i> (a double which keeps track of the
+            summation of the illumination squared of each radiance sampled). We then have a condition that returns true
+            only every <i>samplesPerBatch</i> samples. This allows us to save time by not checking every sample. If the
+            condition is met, we calculate the mean using <i>s1</i> divided by the number of samples sampled. We also
+            calculate the standard deviation by finding the square root of the variance calculated using <i>s1</i> and
+            <i>s2</i>. We then calculate 1.96 times the standard deviation divided by the square root of the total
+            number of samples sampled so far. We then check that this value is less than <i>maxTolerance</i> over the
+            mean. If it is, we terminate the loop and return the ray divided by the total number of samples sampled.
+        </p>
+        <p>In the end, we failed to generate the image shown in the spec. Even though we went to four separate office
+            hours to try to resolve the issue, we weren't able to fix it. We suspect an issue with our implementation
+            for part 3 since for part 5, our values don't converge below <i>maxTolerance</i> as much as we need them to.
+            Though this might be an issue with our part 5 calculations, we suspect instead that
+            <i>est_radiance_global_illumination</i> is outputting a radiance that isn't bright enough, causing the
+            values to not converge. We tried changing different variables to try to manipulate the radiance values to be
+            higher, but to no avail. In the end, we hard-coded <i>maxThreshold</i> to be 0.2 in order to avoid rendering
+            a completely red image.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny.png" width="480px" />
+                        <figcaption align="middle">Bunny</figcaption>
+                    </td>
+
+                    <td align="middle">
+                        <img src="images/bunny_rate.png" width="480px" />
+                        <figcaption align="middle">Bunny rate</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>Partner Reflection</h2>
+        <p>For this project, we collaborated at the beginning of the project by both working on the same part and
+            bounced ideas back and forth. We went to office hours and project parties to get the most work done while
+            also getting help from TA's. We would split work but communicated to update each other and stay on track to
+            finish the project. We learned a lot about the rendering process and how lighting affects images.
+        </p>
+
+        <br>
+
+        <p>Link to repo: <a
+                href="https://cal-cs184-student.github.io/sp22-project-webpages-maleny25/proj3-1/index.html">cal-cs184-student.github.io/sp22-project-webpages-maleny25/proj3-1/index.html</a>
+        </p>
+
+
+
+        <!-- <h2 align="middle">A Few Notes On Webpages</h2>
+        <p>Here are a few problems students have encountered in the past. You will probably encounter these problems at
+            some point, so don't wait until right before the deadline to check that everything is working. Test your
+            website on the instructional machines early!</p>
+        <ul>
+            <li>Your main report page should be called index.html.</li>
+            <li>Be sure to include and turn in all of the other files (such as images) that are linked in your report!
+            </li>
+            <li>Use only <em>relative</em> paths to files, such as
+                <pre>"./images/image.jpg"</pre>
+                Do <em>NOT</em> use absolute paths, such as
+                <pre>"/Users/student/Desktop/image.jpg"</pre>
+            </li>
+            <li>Pay close attention to your filename extensions. Remember that on UNIX systems (such as the
+                instructional machines), capitalization matters.
+                <pre>.png != .jpeg != .jpg != .JPG</pre>
+            <li>Be sure to adjust the permissions on your files so that they are world readable. For more information on
+                this please see this tutorial: <a
+                    href="http://www.grymoire.com/Unix/Permissions.html">http://www.grymoire.com/Unix/Permissions.html</a>
+            </li>
+            <li>And again, test your website on the instructional machines early!</li> -->
+    </div>
+</body>
+
 </html>
