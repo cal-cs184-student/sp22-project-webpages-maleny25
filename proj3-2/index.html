@@ -1,7 +1,186 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+    <style>
+        div.padded {
+            padding-top: 0px;
+            padding-right: 100px;
+            padding-bottom: 0.25in;
+            padding-left: 100px;
+        }
+    </style>
+    <title>Lucy Wan and Maleny Ruiz | CS 184</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+
+<body>
+    <br />
+    <h1 align="middle">Assignment 3: PathTracer</h1>
+    <h2 align="middle">Lucy Wan and Maleny Ruiz</h2>
+
+    <div class="padded">
+        <p>In this project, we add glass, mirror, and microfacet materials to our ray tracer.
+        </p>
+        <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+        <p>To implement this project, we first implemented the <i>reflect</i> function where we set the outgoing ray by
+            reflecting the incoming ray over the normal vector in object space. We then call our <i>reflect</i> function
+            in the <i>sample_f</i> function for our mirror material. Afterwards we implement <i>refract</i> using
+            Snell's law to set our outgoing ray and return false if total internal refraction occurs (otherwise we
+            return true). Then for the <i>sample_f</i> function of the mirror material, we return <i>transmittance /
+                abs_cos_theta(*wi) / eta^2</i>. However if total internal reflection occurs we return an empty vector.
+            Next we implement the <i>sample_f</i> function for our glass material by computing Schlick's reflection
+            coefficient R and reflecting with probability <i>R</i> (return <i>R * reflectance / abs_cos_theta(*wi)</i>)
+            and refracting with probability <i>1 - R</i> (return <i>R * reflectance / abs_cos_theta(*wi)</i>). If there
+            is total internal reflection we reflect and set the pdf to 1.</p>
+
+        <p>When implementing the <i>sample_f</i> function for our glass material, we ran into several bugs. The first
+            bug was that the figure in the rendering of the <i>CBLucy</i> image was completely dark. We solved this
+            issue by remembering to call the <i>reflect</i> and <i>refract</i> functions in our code. However,
+            afterwards, the figure had a dark texture. We overcame this bug by reviewing our code and looking over the
+            conceptual details for Schlick's reflection coefficient and realizing that we need to take the cosine of the
+            dot product of the outgoing ray and the normal since the dot product only gives us an angle.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_d0.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 0</figcaption>
+                    <td align="middle">
+                        <img src="images/sphere_d1.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 1</figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_d2.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 2</figcaption>
+                    <td align="middle">
+                        <img src="images/sphere_d3.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 3</figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_d4.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 4</figcaption>
+                    <td align="middle">
+                        <img src="images/sphere_d5.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 5</figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/sphere_d100.png" width="480px" />
+                        <figcaption align="middle">Max_ray_depth = 100</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>At a <i>max_ray_depth</i> of 0, the image is completely black except for the light source since light isn't
+            emanating off of any surface. At a <i>max_ray_depth</i> of one, there is some reflection of light from the
+            spheres but not enough to notice their material (glass and mirror). This is because the light is only
+            reflecting off the sphere towards the camera but not back at the spheres. At a <i>max_ray_depth</i> of two,
+            the sphere on the left starts to properly show its mirror material by reflecting the rest of the room. This
+            is because there's not some light being reflected back at the spheres. The sphere on the right on the other
+            hand still looks very much like it does with one bounce of light except if you look closely you can see a
+            dim reflection of the rest of the room as well as a bit more transparency (due to itss glass material). At a
+            <i>max_ray_depth</i> of three, the mirror and glass material of the spheres becomes much more apparent, with
+            the right sphere no longer looking dim and the left sphere looking less dim. This is because there's now
+            enough light for refraction to properly show. At a <i>max_ray_depth</i> of four, the image looks almost
+            identical to the previous image except the reflection of the glass sphere on the mirror sphere looks
+            transparent instead of dim. This is because there's now enough light for the reflection of the glass sphere
+            to show properly. At a <i>max_ray_depth</i> of five, there's not much of a difference with
+            <i>max_ray_depth</i> of four. At a <i>max_ray_depth</i> of one hundred, the image doesn't look too different
+            from the previous two images. These images look about the same since after a certain point, more bounces of
+            light only minorly enhance the image.
+        </p>
+
+
+        <h2 align="middle">Part 2: Microfacet Materials</h2>
+        <p>To implement microfacet material, specifically isotropic rough conductors, we first had to implement the
+            evaluation function <i>MicrofacetBSDF::f = (F(w<sub>i</sub>) * G (w<sub>o</sub>, w<sub>i</sub>) * D(h) ) /
+                (4 * (n • w<sub>o</sub>) * (n • w<sub>i</sub>))</i> that includes all of the other parts to calculate
+            the microfacet material look. <i>MicrofacetBSDF::D</i> is the normal distribution function that takes in the
+            half vector between <i>w<sub>o</sub></i> and <i>w<sub>i</sub></i> and calculates the Beckmann distribution
+            with the alpha value of the roughness of the macro surface and the theta value of the half vector.
+            <i>MicrofacetBSDF::D = (e^(-tan^2(θ<sub>h</sub>) / α^2) / (π * α^2 * cos^4(θ<sub>h</sub>))</i>.
+            <i>MicrofacetBSDF::F</i> is the Fresnel term that is calculated with the RGB color channels.
+            <i>MicrofacetBSDF::F = (R<sub>s</sub> + R<sub>s</sub>) / 2</i> where <i>R<sub>s</sub> = ((n^2 + k^2) -
+                2*n*cos(θ<sub>i</sub>) + cos^2(θ<sub>i</sub>)) / ((n^2 + k^2) + 2*n*cos(θ<sub>i</sub>) +
+                cos^2(θ<sub>i</sub>)) </i> and <i>R<sub>p</sub> = ((n^2 + k^2)*cos^2(θ<sub>i</sub>) -
+                2*n*cos(θ<sub>i</sub>) + 1) / ((n^2 + k^2)*cos^2(θ<sub>i</sub>) + 2*n*cos(θ<sub>i</sub>) + 1) </i> where
+            the <i>n</i> and <i>k</i> values come from the color's wavelengths and their <i>n</i> and <i>k</i> values
+            for RGB channels. That was what was used to evaluate the Microfacet BRDF value. This was used at the end of
+            the importance sampling. We calculated the combined pdf using <i>p<sub>w</sub>(h) / (4*(w<sub>i</sub> •
+                h)</i> where <i>h</i> is the microfacet sampled pdf of Theta and Phi. <i>w<sub>i</sub></i> is the
+            reflection of <i>w<sub>o</sub></i> and <i>h</i>.
+        </p>
+        <p>For this part, we had some arithmetic errors that didn't render the correct images. They were too bright or
+            too dark and didn't match the metal material. We went to office hours to find these arithmetic errors. We
+            also isolated the final sample by using hemisphere sampling to see if the issue was at the end or the
+            beginning. We found that we didn't use a dot product when reflecting at the end.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/dragon_0.005.png" width="480px" />
+                        <figcaption align="middle">Alpha = 0.005</figcaption>
+                    <td align="middle">
+                        <img src="images/dragon_0.05.png" width="480px" />
+                        <figcaption align="middle">Alpha = 0.05</figcaption>
+                </tr>
+                <tr>
+                    <td align="middle">
+                        <img src="images/dragon_0.25.png" width="480px" />
+                        <figcaption align="middle">Alpha = 0.25</figcaption>
+                    <td align="middle">
+                        <img src="images/dragon_0.5.png" width="480px" />
+                        <figcaption align="middle">Alpha = 0.5</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>Using a larger alpha value makes the dragon and the gold color look more matte and not shiny even though the
+            light is still reflective on the dragon. As we decrease the alpha value, the dragon and the gold are more
+            shiny and start to get darker. The dragon starts to get more of a buff metallic look. The room also starts
+            to get some noise. The colors of the room are also a little more pronounced as we decreased the alpha value
+            because the dragon is more shiny and more reflective.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/bunny_hemisphere.png" width="480px" />
+                        <figcaption align="middle">Hemisphere Sampling</figcaption>
+                    <td align="middle">
+                        <img src="images/bunny_importance.png" width="480px" />
+                        <figcaption align="middle">Importance Sampling</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>Using hemisphere sampling with the bunny the bunny has more noise on it as well as the room. The gold on the
+            bunny isn't really prominent compared to all the noise and black spots. It doesn't give enough information
+            to show the full gold on the bunny. This is why importance sampling shows a better view of the gold on the
+            bunny. Importance sampling shows a more metallic look and more of a fuller picture with less noise.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/dargon_silver.png" width="480px" />
+                        <figcaption align="middle">Silver (au) Dragon</figcaption>
+                </tr>
+            </table>
+        </div>
+
+        <h2 align="middle">Partner Refelction</h2>
+        <p>For this project, we split up the work and each did a part. We kept each other updated on where we were and
+            tried to go to project parties and office hours together. We then were able to tell eachother what we did
+            and learned a lot from teaching eachother and listening to each other.
+        </p>
+
+        <a
+            href="https://cal-cs184-student.github.io/sp22-project-webpages-maleny25/proj3-2/index.html">https://cal-cs184-student.github.io/sp22-project-webpages-maleny25/proj3-2/index.html</a>
+
+    </div>
+</body>
+
 </html>
