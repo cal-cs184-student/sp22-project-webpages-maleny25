@@ -1,7 +1,530 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 4 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <style>
+    body {
+      padding: 100px;
+      /* width: 1000px; */
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 184 Mesh Editor</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+  <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+  <h1 align="middle">Project 4: Cloth Simulator</h1>
+  <h2 align="middle">Lucy Wan and Maleny Ruiz</h2>
+
+  <br><br>
+
+  <div>
+
+    <h2 align="middle">Overview</h2>
+    <p>In our project, we simulated a cloth using masses and springs. Our simulation not only includes the cloth but
+      also its collision with different objects such as spheres and planes.</p>
+
+    <h2 align="middle">Part I: Masses and Springs</h2>
+    <p>In Part 1, we implemented <i>Cloth::buildGrid</i>, which is meant to create the basis for our cloth. For this
+      part, we populated the <i>point_masses</i> vector by looping through the cloth grid in row-major order and storing
+      the corresponding <i>PointMass</i> in the vector after converting its index from 2D to 1D. We created the
+      corresponding <i>PointMass</i> by setting its position pinned value to true if its position on the grid is in the
+      pinned vector and its position according to whether the cloth is horizontal or vertical, its grid position
+      relative to the number of points, and the width and height of the grid. Afterwards, we looped through the grid
+      again and created the necessary springs for each <i>PointMass</i> using each spring's relative position to the
+      <i>PointMass</i>. This includes structures, bending and shearing springs.
+    </p>
+    <p>As for debugging, during part 2, we realized that the colors for our cloth were different then the ones in the
+      spec. We then realized that my implementation for part 1 was in column-major order instead of row-major order.
+      After that fix, the colors were correct. Also, in the beginning I didn’t completely understand <i>emblace_back</i>
+      so I ran into compilation errors because of incorrect syntax and usage.
+    </p>
+
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part1_no_shearing.png" width="480px" />
+            <figcaption align="middle">No Shearing</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/part1_only_shearing.png" width="480px" />
+            <figcaption align="middle">Only Shearing</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part1_all_constraints.png" width="480px" />
+            <figcaption align="middle">All Constraints</figcaption>
+          </td>
+        </tr>
+
+      </table>
+    </div>
+
+    <h2 align="middle">Part II: Simulation via Numerical Integration</h2>
+    <p>For part 2, we implemented <i>Cloth:simulate</i> which is the physics of the cloth simulation. We computed the
+      total force from all of the external accelerations and set them to all of the point masses' forces. We then
+      iterated through the springs and calculated the correction forces from the two point masses's magnitude subtracted
+      the spring's rest length and multiplied it with the spring constant and added the correction force to a's point
+      mass and subtracted it from b's point mass. After this, we iterated through every point mass and updated the
+      positions of the unpinned point masses using Verlet integration which takes the current position, adds <i>1 -
+        (d/100)</i> where d is the damping factor, multiplies by the difference between the current and last position,
+      adds the forces divided by the mass, and multiplies by the timestep squared. We then iterated through the springs
+      and corrected the positions of the springs that had the point masses with a distance greater than a 10% change
+      from the rest length and the difference from the point masses positions. If the change was greater than 10%, we
+      updated the positions of the point masses of the unpinned point masses. To update the position, we multiplied the
+      difference in position as a unit vector to the rest length and multiplied the change over 10%. If both point
+      masses were unpinned, we divided this by 2 and added this to point mass b and subtracted this to point mass a. If
+      only point mass b was unpinned, we added the whole value to point mass b. If only point mass a was unpinned, we
+      subtracted the whole value to point mass a.
+    </p>
+    <p>Changing the spring constant <i>ks</i> changes the amount of ripples after the cloth has finished falling. The
+      higher the spring constant, the more stable the cloth becomes. The lower the spring constant, the more ripples and
+      instability in the cloth.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/ks5.png" width="480px" />
+            <figcaption align="middle">ks = 5</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/ks50.png" width="480px" />
+            <figcaption align="middle">ks = 50</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/ks5000.png" width="480px" />
+            <figcaption align="middle">ks = 5000</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/ks50000.png" width="480px" />
+            <figcaption align="middle">ks = 50000</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>Changing the <i>density</i> value makes the cloth heavier. Increasing the density value will make the cloth hang
+      lower and have more ripples in it. Decreasing the density value will make the cloth just hang and be stable.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/density1.png" width="480px" />
+            <figcaption align="middle">density = 1</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/density15.png" width="480px" />
+            <figcaption align="middle">density = 15</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/density100.png" width="480px" />
+            <figcaption align="middle">density = 100</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/density300.png" width="480px" />
+            <figcaption align="middle">density = 300</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>Changing the <i>damping</i> value makes the cloth fall at different speeds. A higher damping value leads to the
+      cloth falling at a slower rate compared to when the damping value is lower which is when the cloth falls faster.
+      This happens because a higher damping value will prevent the other forces taking their full force causing the
+      cloth to fall slower. A higher damping value leads to the cloth falling smoother and with less ripples since the
+      forces are more uniform compared to when the damping value is lower and the forces act with more ripples and
+      variation.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/damping0.02.png" width="480px" />
+            <figcaption align="middle">damping ≈ 0.02</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/damping0.5.png" width="480px" />
+            <figcaption align="middle">damping ≈ 0.5</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 align="middle">Part III: Handling Collisions with Other Objects</h2>
+    <p>For part 3.1, we implemented <i>Sphere::collide</i>, where we implemented the collision between our cloth and a
+      sphere. To do so, we first check to see whether the given point mass of the function is inside the sphere by
+      checking to see whether the magnitude between the position of the point mass and the origin of the sphere is less
+      than the radius of the sphere. If so, we know a collision has occurred, so we calculate the point at which the
+      point mass intersects the surface of the sphere in its trajectory and use that point to determine the amount of
+      correction (stated as a vector) needed for the point mass to not go into the sphere. We scale the correction
+      vector by <i>1 - friction</i> to get our resulting correction vector and use it to update the point mass with the
+      correct position. Afterwards, we go into <i>Cloth::simulate</i> and call the collision function of each object in
+      the <i>collision_objects</i> vector on every point mass to make sure object collisions are accounted for in our
+      simulations. We didn't really need to debug this function but we did go into office hours to ask if our conceptual
+      implementation was correct before implementing 3.1.
+    </p>
+    <p>For part 3.2, we implemented <i>Plane::collide</i> which is similar to <i>Sphere::collide</i> except this time
+      our collision object is a plane. First, we determine whether a collision by finding the point of intersection
+      between the trajectory of the given point mass and the plane, finding the difference vector between the last
+      position of the point mass and this intersection point, finding the difference vector between the position of the
+      point mass and the intersection point, finding the dot product of those differences with the normal vector, and
+      comparing the dot products to see whether the difference vectors point in different directions. If they do point
+      in different directions, it means that the intersection point is between the position and the last position of the
+      point mass and a collision has occurred. Using the intersection point, we find the amount of correction needed to
+      move the point mass above the plane offset by <i>SURFACE_OFFSET</i> and then update the position of the point mass
+      using the resulting correction vector scaled by <i>1 - friction</i>. We were initially stuck on this part for
+      several days since we kept on having an issue where our cloth would go through the plane. However, we resolved
+      this when we realized that we were incorrectly detecting whether there was a collision. Once we used the new
+      approach with dot products instead, our collision detection worked.
+    </p>
+    <div align="middle">
+      <img src="images/part3_plane.png" width="480px" />
+      <figcaption align="middle">Shaded cloth lying at rest on the plane</figcaption>
+    </div>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part3_ks_500.png" width="480px" />
+            <figcaption align="middle">At a spring constant of 500 N/m, the wrinkles in the cloth are much finer and the
+              cloth droops down more. We would compare it's consistency to that of silk.</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/part3_ks_5000.png" width="480px" />
+            <figcaption align="middle">At a spring constant of 5,000 N/m, the wrinkles in the cloth are more coarse and
+              the edges of the cloth stick out a little more. We would compare its consistency to that of cotton fabric.
+            </figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part3_ks_50000.png" width="480px" />
+            <figcaption align="middle">At a spring constant of 50,000 N/m, the wrinkles in the cloth are very jagged and
+              the cloth seems to stick out at the edges. It almost seems very stiff. We would compare its consistency to
+              that of a rug.</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 align="middle">Part IV: Handling Self-Collisions</h2>
+    <p>For part 4.1, we implemented <i>Cloth::hash_position</i> which subdivides the 3D box volume of the cloth into
+      smaller 3D boxes (with dimensions as stated in the spec), maps the given point mass's position to its
+      corresponding box, and returns a unique float representing the box it's mapped to. We calculate this unique value
+      by using the first answer described in <a
+        href=“https://stackoverflow.com/questions/1358468/how-to-create-unique-integer-number-from-3-different-integers-numbers1-oracle-l”>this</a>
+      article.
+    </p>
+    <p>For part 4.2, we implemented <i>Cloth::build_spatial_map</i> which populates our unordered map data structure
+      <i>map</i> by iterating through every point mass and adding the point mass to the vector which has it's hash
+      position (found by calling <i>hash_position</i> as the key.
+    </p>
+    <p>For part 4.3, we implemented <i>Cloth::self_collide</i>, which detects and reacts to collisions made between the
+      folds of the cloth. To do this we first find the hash position of the given point mass and find the corresponding
+      vector of point masses associated with the hash position using <i>map</i> in order to find the surrounding point
+      masses. With this, we iterate through the point mass vector. We also create a vector which we called <i>final</i>
+      initialized to 0s. If the current point mass is not the given point mass and the distance between the current
+      point mass and the given point mass is less than 2 times a given thickness, a collision has occurred. We add the
+      correction vector (which when added to the current point mass position gives a distance of 2 times the given
+      thickness between the given and current point masses) to <i>final</i>. After iterating through the vector of point
+      masses, if the number of corrections (which we keep track of in the iterations using an int
+      <i>num_corrections</i>) is not zero, we add <i>(final/num_cor) / simulation_steps</i> to the position of our point
+      mass.
+    </p>
+    <p>The final part of 4 is to call these functions. To do so, in <i>Cloth::self_collide</i>, we call
+      <i>build_spatial_map</i> and we iterate through the point masses and call <i>self_collide</i> on each one.
+    </p>
+    <p>As for debugging, in the beginning of testing our self-collision, our cloth was not colliding with itself. We
+      discovered that this was because we forgot the last step within 4, where we forgot to call the functions.
+      Afterwards, we fixed a few pointer issues in our <i>Cloth::self_collide</i> to get part 4 to work.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part4_initial.png" width="480px" />
+            <figcaption align="middle">Initial</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/part4_mid.png" width="480px" />
+            <figcaption align="middle">Middle</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part4_end.png" width="480px" />
+            <figcaption align="middle">End</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <p>When varying our spring constant, the results are similar to that of part 3. When the spring constant is 500 N/m,
+      the cloth almost becomes a stick when it falls onto the plane and then disappears. However, when the spring
+      constant is 50,000 N/m, the cloth doesn't seem to bend very much and instead almost looks like a blanket when it's
+      at its resting state on the plane. When the density is 5 g/cm^2, the cloth falls slowly and seems more bouncy.
+      However, when the density is 30 g/cm^2, the cloth falls more quickly, has many more folds, and seems very flat on
+      the plane in its resting state.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part4_ks_500.png" width="480px" />
+            <figcaption align="middle">ks = 500</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/part4_ks_50000.png" width="480px" />
+            <figcaption align="middle">ks = 50000</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part4_density_5.png" width="480px" />
+            <figcaption align="middle">density = 5</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/part4_density_30.png" width="480px" />
+            <figcaption align="middle">density = 30</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 align="middle">Part V: Shaders</h2>
+    <p>For part 5.1, we implemented diffuse shading. We set the <i>out_color</i> to the <i>u_light_intensity / radius ^2
+        * max(0 vector, dot(v_normal, vector from u_light_pos to v_position))</i>.
+    </p>
+    <p>For part 5.2, we implemented blinn phong shading. We used the same code from diffuse shading. We got the max of
+      the 0 vector and the dot product of the <i>v_normal</i> and the sum of the vectors from the <i>u_light_pos</i> to
+      the <i>v_position</i> and the vector from the <i>u_cam_pos</i> to the <i>v_position</i> divided over the length of
+      the sum of those vectors. We took that max and took it to the power of p which we set to 100. We found the
+      reflection to be <i> u_light_intensity / radius^2 * max^p</i>. We finally set <i>out_color</i> to <i>0.1 * 1
+        vector + kd * diffuse + ks * reflection</i> where <i>ks</i> is set to 0.5 and <i>kd</i> is set to
+      <i>u_color</i>.
+    </p>
+    <p>For part 5.3, we implemented texture mapping. We sampled <i>v_uv</i> using <i></i>u_texture_1</i> and set that to
+      the <i>out_color</i>.
+    </p>
+    <p>For part 5.4.1, we implemented bump mapping. We first got the tangent-bitangent-normal (TBN) matrix by combining
+      the vectors <i>v_normal, v_tangent, and the cross product of v_normal and v_tangent</i> into one matrix. We then
+      found <i>du = (h(u + 1/w, v) - h(u, v)) * u_height_scaling * u_normal_scaling</i> and <i>dv = (h(u, v + 1/h) -
+        h(u, v)) * u_height_scaling * u_normal_scaling</i> where h returns the height encoded by a height map at texture
+      coordinates u and v. We then created a vector for local space normal <i>no = -1*du, -1*dv, 1</i>. We then got the
+      displaced model space normal vector <i>nd = tbn * no</i>. We then put this normal <i>nd</i> into blinn phong
+      shading and set the result to <i>out_color</i>.
+    </p>
+    <p>For part 5.4.2, we implemented displacement mapping. We copied over the code from bump mapping into the
+      <i>displacement.frag</i> file. In the <i>displacement.vert</i> file we updated the <i>v_position</i> by adding
+      <i>v_normal * h(u, v) * height_scaling</i> to change the geometry.
+    </p>
+    <p>For part 5.5, we implemented environment mapped reflections. We found the outgoing eye-ray <i>wo</i> by getting
+      the vector between the <i>v_position</i> and <i>u_cam_position</i> and dividing it by the length of <i>v_position
+        - u_cam_position</i>. We then reflected <i>wo</i> by <i>v_normal</i> to get <i>wi</i>. We finally sampled
+      <i>wi</i> using <i>u_texture_cubemap</i> and set that to the <i>out_color</i>.
+    </p>
+
+    <p>A shader program takes in both a vertex shader and fragment shader. The shader program gives inputs to the vertex
+      shader and the outputs of that will be inputted as the inputs to the fragment shader. The vertex shader applies
+      transforms to the vertices by changing their positions and normal vectors. It then updates the <i>gl_Position</i>.
+      The fragment shader then takes the fragments that result after rasterization and shades them by setting the
+      <i>out_color</i>.
+    </p>
+
+    <p>Blinn Phong shading combines ambient light, diffuse shading, and specular reflection to get the final shading.
+      Each of these components are multiplied by their respective shading coefficients. Blinn Phong takes all of this
+      into account to show a nice image that takes physics of light into consideration.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/ambient_ball.png" width="480px" />
+            <figcaption align="middle">Ambient Component</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/ambient.png" width="480px" />
+            <figcaption align="middle">Ambient Component</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/diffuse_ball.png" width="480px" />
+            <figcaption align="middle">Diffuse Component</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/diffuse.png" width="480px" />
+            <figcaption align="middle">Diffuse Component</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/reflection_ball.png" width="480px" />
+            <figcaption align="middle">Specular Component</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/reflection.png" width="480px" />
+            <figcaption align="middle">Specular Component</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/phong_ball.png" width="480px" />
+            <figcaption align="middle">Complete Blinn Phong</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/phong.png" width="480px" />
+            <figcaption align="middle">Complete Blinn Phong</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- texture -->
+    <p>Texture Shading</p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/tex_ball.png" width="480px" />
+            <figcaption align="middle">Texture Shader Ball</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/tex.png" width="480px" />
+            <figcaption align="middle">Texture Shader Cloth on Ball</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- bump  -->
+    <p>Bump Mapping</p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/bump_ball.png" width="480px" />
+            <figcaption align="middle">Bump Mapping Ball</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/bump.png" width="480px" />
+            <figcaption align="middle">Bump Mapping Cloth on Ball</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>Displacement Mapping</p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/dsplacement_ball.png" width="480px" />
+            <figcaption align="middle">Displacement Mapping Ball</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/displacement_cloth.png" width="480px" />
+            <figcaption align="middle">Displacement Cloth</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/displacement.png" width="480px" />
+            <figcaption align="middle">Displacement Cloth on Ball</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <p>Coarseness</p>
+    <p>Using higher a and o values changes the cloth to be more stiff and shows the ripples to be thicker.</p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/16_bump.png" width="480px" />
+            <figcaption align="middle">Bump a = 16 o = 16</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/16_displacement.png" width="480px" />
+            <figcaption align="middle">Displacement a = 16 o = 16</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/128_bump.png" width="480px" />
+            <figcaption align="middle">Bump a = 128 o = 128</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/128_displacement.png" width="480px" />
+            <figcaption align="middle">Displacement a = 128 o = 128</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+    <p>Environment-Mapped Reflections</p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/mirror_ball.png" width="480px" />
+            <figcaption align="middle">Mirror Shader Ball</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/mirror.png" width="480px" />
+            <figcaption align="middle">Mirror Shader Cloth on Ball</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 align="middle">Extra Credit: Custom Shader</h2>
+    <p>We created a custom shader by combining the bump shader and mirror shader. We took the code from bump mapping and
+      got the normal <i>nd</i> and used that to reflect <i>wo</i> to get <i>wi</i>. We then sampled from the
+      <i>u_texture_cubemap</i> to get the <i>out_color</i>. We combined the code from bump mapping and mirror shader to
+      get this new shader that is a combination of the two where we see the bumps and reflections.
+    </p>
+    <div align="center">
+      <table>
+        <tr>
+          <td align="middle">
+            <img src="images/custom_ball.png" width="480px" />
+            <figcaption align="middle">Custom Shader Ball</figcaption>
+          </td>
+          <td align="middle">
+            <img src="images/custom.png" width="480px" />
+            <figcaption align="middle">Custom Shader Cloth on Ball</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <a
+      href="https://cal-cs184-student.github.io/sp22-project-webpages-maleny25/proj4/index.html">https://cal-cs184-student.github.io/sp22-project-webpages-maleny25/proj4/index.html</a>
+
+</body>
+
 </html>
