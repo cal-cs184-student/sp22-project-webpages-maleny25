@@ -95,6 +95,10 @@
       only point mass b was unpinned, we added the whole value to point mass b. If only point mass a was unpinned, we
       subtracted the whole value to point mass a.
     </p>
+    <p>When debugging part 2 we found the error from part 1 of having our colors wrong. We were also having issues with
+      updating the constraint positions. We had implemented a version that had the cloth jump everywhere so we went to
+      office hours. We got help and rewrote how we updated the positions of the spring's point masses.
+    </p>
     <p>Changing the spring constant <i>ks</i> changes the amount of ripples after the cloth has finished falling. The
       higher the spring constant, the more stable the cloth becomes. The lower the spring constant, the more ripples and
       instability in the cloth.
@@ -345,6 +349,11 @@
         - u_cam_position</i>. We then reflected <i>wo</i> by <i>v_normal</i> to get <i>wi</i>. We finally sampled
       <i>wi</i> using <i>u_texture_cubemap</i> and set that to the <i>out_color</i>.
     </p>
+    <p>For debugging, I had an issue where I didn't know how to calculate some values, but got clarifications during
+      office hours. During bump and displacement mapping, we had some issues as well. We had a variable named h, so we
+      couldn't call the h functions. We also had some parentheses in the wrong spot, which led to some lines in the bump
+      mapping. For displacement, we didn't see results because we forgot to update the <i>gl_Posittion</i>.
+    </p>
 
     <p>A shader program takes in both a vertex shader and fragment shader. The shader program gives inputs to the vertex
       shader and the outputs of that will be inputted as the inputs to the fragment shader. The vertex shader applies
@@ -458,26 +467,29 @@
     </div>
 
     <p>Coarseness</p>
-    <p>Using higher a and o values changes the cloth to be more stiff and shows the ripples to be thicker.</p>
+    <p>Changing the coarseness makes a small change in the bump mapping. It looks a little more round with higher a and
+      o values. The change in displacement mapping is more noticable where the a and o values are higher. We can see
+      higher effects in the higher bumps from the texture.
+    </p>
     <div align="center">
       <table style="width=100%">
         <tr>
           <td align="middle">
-            <img src="images/16_bump.png" width="480px" />
+            <img src="images/16b.png" width="480px" />
             <figcaption align="middle">Bump a = 16 o = 16</figcaption>
           </td>
           <td align="middle">
-            <img src="images/16_displacement.png" width="480px" />
+            <img src="images/16d.png" width="480px" />
             <figcaption align="middle">Displacement a = 16 o = 16</figcaption>
           </td>
         </tr>
         <tr>
           <td align="middle">
-            <img src="images/128_bump.png" width="480px" />
+            <img src="images/128b.png" width="480px" />
             <figcaption align="middle">Bump a = 128 o = 128</figcaption>
           </td>
           <td align="middle">
-            <img src="images/128_displacement.png" width="480px" />
+            <img src="images/128d.png" width="480px" />
             <figcaption align="middle">Displacement a = 128 o = 128</figcaption>
           </td>
         </tr>
